@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">Clock Control</string>
+    <string name="ip_hint">Clock IP address</string>
+    <string name="connect">Connect</string>
+    <string name="status_waiting">Not connected</string>
+    <string name="brightness">Global brightness</string>
+    <string name="city">Weather city</string>
+    <string name="update_city">Update city</string>
+    <string name="restart">Restart clock</string>
+    <string name="toggle_celsius">Show temperature in Celsius</string>
+    <string name="toggle_hour12">Use 12-hour clock</string>
+    <string name="toggle_mile">Show miles</string>
+    <string name="toggle_sync">Sync phone time</string>
+    <string name="time_format">Time/date format</string>
+    <string name="gif_select">GIF slideshow</string>
+    <string name="night_mode">Night mode</string>
+    <string name="start_time">Night start time</string>
+    <string name="stop_time">Night stop time</string>
+    <string name="night_brightness">Night brightness</string>
+    <string name="wifi_ssid">Wi‑Fi SSID</string>
+    <string name="wifi_password">Wi‑Fi password</string>
+    <string name="save_wifi">Save Wi‑Fi</string>
+    <string name="ntp_server">NTP server</string>
+    <string name="save_ntp">Save NTP</string>
+    <string name="weather_key">OpenWeather API key</string>
+    <string name="save_weather_key">Save key</string>
+    <string name="color1">Color 1</string>
+    <string name="color2">Color 2</string>
+    <string name="color3">Color 3</string>
+    <string name="apply_colors">Apply colors</string>
+</resources>
