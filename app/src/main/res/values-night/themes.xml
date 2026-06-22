@@ -1,0 +1,39 @@
+<resources>
+    <style name="Theme.ClockApp" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Main colors -->
+        <item name="colorPrimary">#9ECAFF</item>
+        <item name="colorOnPrimary">#003258</item>
+        <item name="colorPrimaryContainer">#00497D</item>
+        <item name="colorOnPrimaryContainer">#D1E4FF</item>
+
+        <item name="colorSecondary">#BBC7DB</item>
+        <item name="colorOnSecondary">#253140</item>
+        <item name="colorSecondaryContainer">#3B4858</item>
+        <item name="colorOnSecondaryContainer">#D7E3F7</item>
+
+        <item name="colorTertiary">#D6BEE4</item>
+        <item name="colorOnTertiary">#3B2948</item>
+        <item name="colorTertiaryContainer">#523F5F</item>
+        <item name="colorOnTertiaryContainer">#F2DAFF</item>
+
+        <item name="colorError">#FFB4AB</item>
+        <item name="colorOnError">#690005</item>
+        <item name="colorErrorContainer">#93000A</item>
+        <item name="colorOnErrorContainer">#FFDAD6</item>
+
+        <item name="android:colorBackground">#001F25</item>
+        <item name="colorOnBackground">#A6EEFF</item>
+
+        <item name="colorSurface">#001F25</item>
+        <item name="colorOnSurface">#A6EEFF</item>
+        <item name="colorSurfaceVariant">#43474E</item>
+        <item name="colorOnSurfaceVariant">#C3C7CF</item>
+
+        <item name="colorOutline">#8D9199</item>
+
+        <!-- Status bar and Navigation bar -->
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

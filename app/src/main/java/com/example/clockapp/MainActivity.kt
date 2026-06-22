@@ -1,14 +1,18 @@
 package com.example.clockapp
 
 import android.os.Bundle
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.SeekBar
 import android.widget.Spinner
-import android.widget.Switch
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import com.github.dhaval2404.colorpicker.ColorPickerDialog
+import com.github.dhaval2404.colorpicker.model.ColorShape
+import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -24,10 +28,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var brightnessSeekBar: SeekBar
     private lateinit var nightBrightnessSeekBar: SeekBar
+    private lateinit var themeCheckboxContainer: android.widget.LinearLayout
+    private lateinit var themeIntervalSpinner: Spinner
+    private lateinit var storageProgress: com.google.android.material.progressindicator.LinearProgressIndicator
+    private lateinit var storageText: TextView
     private lateinit var cityInput: EditText
     private lateinit var color1Input: EditText
     private lateinit var color2Input: EditText
     private lateinit var color3Input: EditText
+    private lateinit var color1Preview: View
+    private lateinit var color2Preview: View
+    private lateinit var color3Preview: View
     private lateinit var ssidInput: EditText
     private lateinit var passwordInput: EditText
     private lateinit var ntpInput: EditText
@@ -36,23 +47,34 @@ class MainActivity : AppCompatActivity() {
     private lateinit var gifSpinner: Spinner
     private lateinit var startTimeSpinner: Spinner
     private lateinit var stopTimeSpinner: Spinner
-    private lateinit var celsiusSwitch: Switch
-    private lateinit var hour12Switch: Switch
-    private lateinit var mileSwitch: Switch
-    private lateinit var syncSwitch: Switch
-    private lateinit var nightModeSwitch: Switch
+    private lateinit var celsiusSwitch: MaterialSwitch
+    private lateinit var hour12Switch: MaterialSwitch
+    private lateinit var mileSwitch: MaterialSwitch
+    private lateinit var syncSwitch: MaterialSwitch
+    private lateinit var nightModeSwitch: MaterialSwitch
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
         statusText = findViewById(R.id.statusText)
         brightnessSeekBar = findViewById(R.id.brightnessSeekBar)
         nightBrightnessSeekBar = findViewById(R.id.nightBrightnessSeekBar)
+        themeCheckboxContainer = findViewById(R.id.themeCheckboxContainer)
+        themeIntervalSpinner = findViewById(R.id.themeIntervalSpinner)
+        storageProgress = findViewById(R.id.storageProgress)
+        storageText = findViewById(R.id.storageText)
         cityInput = findViewById(R.id.cityInput)
         color1Input = findViewById(R.id.color1Input)
         color2Input = findViewById(R.id.color2Input)
         color3Input = findViewById(R.id.color3Input)
+        color1Preview = findViewById(R.id.color1Preview)
+        color2Preview = findViewById(R.id.color2Preview)
+        color3Preview = findViewById(R.id.color3Preview)
         ssidInput = findViewById(R.id.ssidInput)
         passwordInput = findViewById(R.id.passwordInput)
         ntpInput = findViewById(R.id.ntpInput)
@@ -68,6 +90,11 @@ class MainActivity : AppCompatActivity() {
         nightModeSwitch = findViewById(R.id.nightModeSwitch)
 
         setupSpinners()
+        setupColorPickers()
+        
+        themeIntervalSpinner.onItemSelectedListener = SimpleSpinnerListener { position ->
+            sendSetting("theme_interval", themeIntervalValues[position].toString())
+        }
 
         findViewById<Button>(R.id.connectButton).setOnClickListener {
             baseUrl = "http://" + findViewById<EditText>(R.id.ipInput).text.toString().trim()
@@ -154,6 +181,33 @@ class MainActivity : AppCompatActivity() {
         gifSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, gifOptions)
         startTimeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, startOptions)
         stopTimeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, stopOptions)
+
+        val intervalOptions = listOf("Disable Interval", "5 Seconds", "10 Seconds", "15 Seconds", "30 Seconds", "1 Minute", "5 Minutes", "30 Minutes")
+        themeIntervalSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, intervalOptions)
+    }
+
+    private fun setupColorPickers() {
+        color1Input.setOnClickListener { pickColor(color1Input, color1Preview) }
+        color2Input.setOnClickListener { pickColor(color2Input, color2Preview) }
+        color3Input.setOnClickListener { pickColor(color3Input, color3Preview) }
+    }
+
+    private fun pickColor(editText: EditText, preview: View) {
+        val currentColor = try {
+            android.graphics.Color.parseColor(editText.text.toString())
+        } catch (e: Exception) {
+            android.graphics.Color.WHITE
+        }
+
+        ColorPickerDialog.Builder(this)
+            .setTitle("Pick Color")
+            .setColorShape(ColorShape.SQAURE)
+            .setDefaultColor(currentColor)
+            .setColorListener { color, colorHex ->
+                editText.setText(colorHex)
+                preview.setBackgroundColor(color)
+            }
+            .show()
     }
 
     private fun fetchConfig() {
@@ -184,6 +238,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyConfig(config: JSONObject) {
+        val themesArray = config.optJSONArray("themes")
+        val activeThemes = config.optString("active_themes", "") // e.g. "0,1,3"
+        
+        if (themesArray != null) {
+            themeCheckboxContainer.removeAllViews()
+            val activeList = activeThemes.split(",").filter { it.isNotEmpty() }
+            
+            for (i in 0 until themesArray.length()) {
+                val themeName = themesArray.getString(i)
+                val cb = com.google.android.material.checkbox.MaterialCheckBox(this).apply {
+                    text = themeName
+                    isChecked = activeList.contains(i.toString())
+                    setOnCheckedChangeListener { _, _ ->
+                        updateThemeLoop()
+                    }
+                }
+                themeCheckboxContainer.addView(cb)
+            }
+        }
+
+        val interval = config.optInt("theme_interval", 0)
+        val intervalIndex = themeIntervalValues.indexOf(interval).coerceAtLeast(0)
+        themeIntervalSpinner.setSelection(intervalIndex)
+
+        val storageTotal = config.optLong("storage_total", 0)
+        val storageUsed = config.optLong("storage_used", 0)
+        if (storageTotal > 0) {
+            val percent = (storageUsed * 100 / storageTotal).toInt()
+            storageProgress.progress = percent
+            val freeMb = (storageTotal - storageUsed) / (1024 * 1024)
+            val totalMb = storageTotal / (1024 * 1024)
+            storageText.text = "Used $percent% ($freeMb MB free of $totalMb MB)"
+        }
+
         brightnessSeekBar.progress = config.optInt("brightness", brightnessSeekBar.progress).coerceIn(2, 99)
         nightBrightnessSeekBar.progress = config.optInt("nightbrightness", nightBrightnessSeekBar.progress).coerceIn(2, 99)
         cityInput.setText(config.optString("city", ""))
@@ -205,9 +293,17 @@ class MainActivity : AppCompatActivity() {
         val stopTime = config.optInt("stoptime", 5).coerceIn(5, 12)
         stopTimeSpinner.setSelection(stopTime - 5)
 
-        color1Input.setText(rgb565ToHex(config.optInt("color1", 0)))
-        color2Input.setText(rgb565ToHex(config.optInt("color2", 0)))
-        color3Input.setText(rgb565ToHex(config.optInt("color3", 0)))
+        val c1 = rgb565ToHex(config.optInt("color1", 0))
+        val c2 = rgb565ToHex(config.optInt("color2", 0))
+        val c3 = rgb565ToHex(config.optInt("color3", 0))
+
+        color1Input.setText(c1)
+        color2Input.setText(c2)
+        color3Input.setText(c3)
+
+        color1Preview.setBackgroundColor(android.graphics.Color.parseColor(c1))
+        color2Preview.setBackgroundColor(android.graphics.Color.parseColor(c2))
+        color3Preview.setBackgroundColor(android.graphics.Color.parseColor(c3))
 
         ssidInput.setText(config.optString("ssid", ""))
         passwordInput.setText(config.optString("password", ""))
@@ -285,9 +381,21 @@ class MainActivity : AppCompatActivity() {
         return String.format("#%02X%02X%02X", r, g, b)
     }
 
+    private fun updateThemeLoop() {
+        val selected = mutableListOf<Int>()
+        for (i in 0 until themeCheckboxContainer.childCount) {
+            val cb = themeCheckboxContainer.getChildAt(i) as? com.google.android.material.checkbox.MaterialCheckBox
+            if (cb?.isChecked == true) {
+                selected.add(i)
+            }
+        }
+        sendSetting("active_themes", selected.joinToString(","))
+    }
+
     private companion object {
         val startTimeValues = listOf(18, 19, 20, 21, 22, 23)
         val stopTimeValues = listOf(5, 6, 7, 8, 9, 10, 11, 12)
+        val themeIntervalValues = listOf(0, 5, 10, 15, 30, 60, 300, 1800)
     }
 
     private class SimpleSpinnerListener(

@@ -28,4 +28,7 @@
     <string name="color2">Color 2</string>
     <string name="color3">Color 3</string>
     <string name="apply_colors">Apply colors</string>
+    <string name="themes_title">Themes loop selection</string>
+    <string name="theme_interval">Theme interval</string>
+    <string name="loading_themes">Loading themes...</string>
 </resources>
