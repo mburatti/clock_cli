@@ -2,17 +2,22 @@ package com.example.clockapp
 
 import android.os.Bundle
 import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.graphics.toColorInt
 import com.github.dhaval2404.colorpicker.ColorPickerDialog
 import com.github.dhaval2404.colorpicker.model.ColorShape
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,9 +33,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var brightnessSeekBar: SeekBar
     private lateinit var nightBrightnessSeekBar: SeekBar
-    private lateinit var themeCheckboxContainer: android.widget.LinearLayout
+    private lateinit var themeCheckboxContainer: LinearLayout
     private lateinit var themeIntervalSpinner: Spinner
-    private lateinit var storageProgress: com.google.android.material.progressindicator.LinearProgressIndicator
+    private lateinit var storageProgress: LinearProgressIndicator
     private lateinit var storageText: TextView
     private lateinit var cityInput: EditText
     private lateinit var color1Input: EditText
@@ -52,6 +57,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mileSwitch: MaterialSwitch
     private lateinit var syncSwitch: MaterialSwitch
     private lateinit var nightModeSwitch: MaterialSwitch
+    
+    private lateinit var connectionCard: View
+    private lateinit var mainContentContainer: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
@@ -88,7 +96,10 @@ class MainActivity : AppCompatActivity() {
         mileSwitch = findViewById(R.id.mileSwitch)
         syncSwitch = findViewById(R.id.syncSwitch)
         nightModeSwitch = findViewById(R.id.nightModeSwitch)
-
+        
+        connectionCard = findViewById(R.id.connectionCard)
+        mainContentContainer = findViewById(R.id.mainContentContainer)
+        
         setupSpinners()
         setupColorPickers()
         
@@ -97,26 +108,31 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.connectButton).setOnClickListener {
-            baseUrl = "http://" + findViewById<EditText>(R.id.ipInput).text.toString().trim()
-            statusText.text = "Connecting to $baseUrl..."
+            val ip = findViewById<EditText>(R.id.ipInput).text.toString().trim()
+            baseUrl = "http://$ip"
+            statusText.text = getString(R.string.connecting_to, baseUrl)
             fetchConfig()
         }
 
-        brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {}
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                sendSetting("lcd_brightness", seekBar.progress.toString())
-            }
-        })
+        brightnessSeekBar.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {}
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    sendSetting("lcd_brightness", seekBar.progress.toString())
+                }
+            },
+        )
 
-        nightBrightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {}
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                sendSetting("nightbrightness", seekBar.progress.toString())
-            }
-        })
+        nightBrightnessSeekBar.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {}
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    sendSetting("nightbrightness", seekBar.progress.toString())
+                }
+            },
+        )
 
         celsiusSwitch.setOnCheckedChangeListener { _, checked -> sendSetting("celsius", if (checked) "1" else "0") }
         hour12Switch.setOnCheckedChangeListener { _, checked -> sendSetting("time12_24", if (checked) "1" else "0") }
@@ -148,9 +164,9 @@ class MainActivity : AppCompatActivity() {
             val color1 = normalizeHex(color1Input.text.toString())
             val color2 = normalizeHex(color2Input.text.toString())
             val color3 = normalizeHex(color3Input.text.toString())
-            if (color1 != null) sendSetting("color1", hexToRgb565(color1).toString())
-            if (color2 != null) sendSetting("color2", hexToRgb565(color2).toString())
-            if (color3 != null) sendSetting("color3", hexToRgb565(color3).toString())
+            color1?.let { sendSetting("color1", hexToRgb565(it).toString()) }
+            color2?.let { sendSetting("color2", hexToRgb565(it).toString()) }
+            color3?.let { sendSetting("color3", hexToRgb565(it).toString()) }
         }
 
         findViewById<Button>(R.id.saveWifiButton).setOnClickListener {
@@ -169,6 +185,10 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.restartButton).setOnClickListener {
             sendAction("restart")
         }
+
+        // Automatic connection on start
+        statusText.text = getString(R.string.connecting_to, baseUrl)
+        fetchConfig()
     }
 
     private fun setupSpinners() {
@@ -194,8 +214,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun pickColor(editText: EditText, preview: View) {
         val currentColor = try {
-            android.graphics.Color.parseColor(editText.text.toString())
-        } catch (e: Exception) {
+            editText.text.toString().toColorInt()
+        } catch (_: Exception) {
             android.graphics.Color.WHITE
         }
 
@@ -217,24 +237,35 @@ class MainActivity : AppCompatActivity() {
                 .build()
             try {
                 val response = client.newCall(request).execute()
-                val body = response.body?.string() ?: ""
+                val body = response.body.string()
                 if (response.isSuccessful) {
                     val json = JSONObject(body)
                     runOnUiThread {
-                        statusText.text = "Connected to $baseUrl"
+                        statusText.text = getString(R.string.connected_to, baseUrl)
+                        connectionCard.visibility = View.GONE
+                        showMainContent(true)
                         applyConfig(json)
                     }
                 } else {
                     runOnUiThread {
-                        statusText.text = "Connection failed"
+                        statusText.text = getString(R.string.connection_failed)
+                        connectionCard.visibility = View.VISIBLE
+                        showMainContent(false)
                     }
                 }
             } catch (e: Exception) {
                 runOnUiThread {
-                    statusText.text = "Error: ${e.message}"
+                    statusText.text = getString(R.string.error_status, e.message ?: "Unknown error")
+                    connectionCard.visibility = View.VISIBLE
+                    showMainContent(false)
                 }
             }
         }
+    }
+
+    private fun showMainContent(show: Boolean) {
+        val visibility = if (show) View.VISIBLE else View.GONE
+        mainContentContainer.visibility = visibility
     }
 
     private fun applyConfig(config: JSONObject) {
@@ -247,7 +278,7 @@ class MainActivity : AppCompatActivity() {
             
             for (i in 0 until themesArray.length()) {
                 val themeName = themesArray.getString(i)
-                val cb = com.google.android.material.checkbox.MaterialCheckBox(this).apply {
+                val cb = MaterialCheckBox(this).apply {
                     text = themeName
                     isChecked = activeList.contains(i.toString())
                     setOnCheckedChangeListener { _, _ ->
@@ -265,11 +296,11 @@ class MainActivity : AppCompatActivity() {
         val storageTotal = config.optLong("storage_total", 0)
         val storageUsed = config.optLong("storage_used", 0)
         if (storageTotal > 0) {
-            val percent = (storageUsed * 100 / storageTotal).toInt()
+            val percent = ((storageUsed * 100) / storageTotal).toInt()
             storageProgress.progress = percent
             val freeMb = (storageTotal - storageUsed) / (1024 * 1024)
             val totalMb = storageTotal / (1024 * 1024)
-            storageText.text = "Used $percent% ($freeMb MB free of $totalMb MB)"
+            storageText.text = getString(R.string.used_storage, percent, freeMb, totalMb)
         }
 
         brightnessSeekBar.progress = config.optInt("brightness", brightnessSeekBar.progress).coerceIn(2, 99)
@@ -301,9 +332,9 @@ class MainActivity : AppCompatActivity() {
         color2Input.setText(c2)
         color3Input.setText(c3)
 
-        color1Preview.setBackgroundColor(android.graphics.Color.parseColor(c1))
-        color2Preview.setBackgroundColor(android.graphics.Color.parseColor(c2))
-        color3Preview.setBackgroundColor(android.graphics.Color.parseColor(c3))
+        color1Preview.setBackgroundColor(c1.toColorInt())
+        color2Preview.setBackgroundColor(c2.toColorInt())
+        color3Preview.setBackgroundColor(c3.toColorInt())
 
         ssidInput.setText(config.optString("ssid", ""))
         passwordInput.setText(config.optString("password", ""))
@@ -318,17 +349,17 @@ class MainActivity : AppCompatActivity() {
             try {
                 val request = Request.Builder().url(url).build()
                 val response = client.newCall(request).execute()
-                val body = response.body?.string() ?: ""
+                val body = response.body.string()
                 runOnUiThread {
                     statusText.text = if (response.isSuccessful) {
-                        "Set $key: ${body.ifBlank { "ok" }}"
+                        getString(R.string.set_status, key, body.ifBlank { "ok" })
                     } else {
-                        "Failed to set $key"
+                        getString(R.string.failed_set, key)
                     }
                 }
             } catch (e: Exception) {
                 runOnUiThread {
-                    statusText.text = "Error: ${e.message}"
+                    statusText.text = getString(R.string.error_status, e.message ?: "Unknown error")
                 }
             }
         }
@@ -341,15 +372,15 @@ class MainActivity : AppCompatActivity() {
                 val request = Request.Builder().url(url).build()
                 val response = client.newCall(request).execute()
                 runOnUiThread {
-                    statusText.text = if (response.isSuccessful || response.code == 200 || response.code == 204) {
-                        "Action sent to $path"
+                    statusText.text = if (response.isSuccessful || (response.code == 200) || (response.code == 204)) {
+                        getString(R.string.action_sent, path)
                     } else {
-                        "Action failed"
+                        getString(R.string.action_failed)
                     }
                 }
             } catch (e: Exception) {
                 runOnUiThread {
-                    statusText.text = "Error: ${e.message}"
+                    statusText.text = getString(R.string.error_status, e.message ?: "Unknown error")
                 }
             }
         }
@@ -384,7 +415,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateThemeLoop() {
         val selected = mutableListOf<Int>()
         for (i in 0 until themeCheckboxContainer.childCount) {
-            val cb = themeCheckboxContainer.getChildAt(i) as? com.google.android.material.checkbox.MaterialCheckBox
+            val cb = themeCheckboxContainer.getChildAt(i) as? MaterialCheckBox
             if (cb?.isChecked == true) {
                 selected.add(i)
             }
@@ -400,11 +431,11 @@ class MainActivity : AppCompatActivity() {
 
     private class SimpleSpinnerListener(
         private val onSelected: (Int) -> Unit
-    ) : android.widget.AdapterView.OnItemSelectedListener {
-        override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+    ) : AdapterView.OnItemSelectedListener {
+        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
             onSelected(position)
         }
 
-        override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        override fun onNothingSelected(parent: AdapterView<*>?) {}
     }
 }

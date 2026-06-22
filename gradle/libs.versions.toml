@@ -2,7 +2,6 @@
 agp = "9.2.1"
 appcompat = "1.7.1"
 constraintlayout = "2.2.1"
-kotlin = "2.2.21"
 kotlinxCoroutines = "1.11.0"
 material = "1.14.0"
 okhttp = "5.4.0"
@@ -18,4 +17,3 @@ colorpicker = { module = "com.github.dhaval2404:colorpicker", version.ref = "col
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

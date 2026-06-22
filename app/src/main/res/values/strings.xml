@@ -30,5 +30,23 @@
     <string name="apply_colors">Apply colors</string>
     <string name="themes_title">Themes loop selection</string>
     <string name="theme_interval">Theme interval</string>
-    <string name="loading_themes">Loading themes...</string>
+    <string name="loading_themes">Loading themes…</string>
+    <string name="display_settings">Display Settings</string>
+    <string name="city_weather">City &amp; Weather</string>
+    <string name="update">Update</string>
+    <string name="colors_night">Colors &amp; Night Mode</string>
+    <string name="wifi_system">WiFi &amp; System</string>
+    <string name="storage">Storage</string>
+    <string name="checking_storage">Checking storage…</string>
+    <string name="connecting_to">Connecting to %1$s…</string>
+    <string name="set_status">Set %1$s: %2$s</string>
+    <string name="failed_set">Failed to set %1$s</string>
+    <string name="action_sent">Action sent to %1$s</string>
+    <string name="action_failed">Action failed</string>
+    <string name="connection_failed">Connection failed</string>
+    <string name="error_status">Error: %1$s</string>
+    <string name="connected_to">Connected to %1$s</string>
+    <string name="used_storage">Used %1$d%% (%2$d MB free of %3$d MB)</string>
+    <string name="default_ip">172.30.153.123</string>
+    <string name="default_city">Paris</string>
 </resources>
